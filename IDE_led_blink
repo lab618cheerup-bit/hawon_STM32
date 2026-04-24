@@ -1,0 +1,48 @@
+#include "main.h"
+
+static void delay_1ms_systick(void);
+static void delay_ms(uint32_t ms);
+
+int main(void)
+{
+    // 기본 클럭은 HSI 16MHz 상태로 가정
+    // GPIOA 클럭 enable
+    RCC->AHB1ENR |= (1U << 0);
+    // PA5 output mode
+    GPIOA->MODER &= ~(3U << (5 * 2));
+    GPIOA->MODER |=  (1U << (5 * 2));
+
+    while (1)
+    {
+        GPIOA->BSRR = (1U << 5);         // LED ON
+        delay_ms(500);
+
+        GPIOA->BSRR = (1U << (5 + 16));  // LED OFF
+        delay_ms(500);
+    }
+}
+static void delay_1ms_systick(void)
+{
+    // SysTick 클럭 소스 = CPU 클럭(HCLK)
+    SysTick->CTRL = 0;
+    // HSI 16MHz 기준 1ms
+    SysTick->LOAD = 16000 - 1;
+    // 현재값 클리어
+    SysTick->VAL = 0;
+    // ENABLE=1, CLKSOURCE=1(HCLK), TICKINT=0
+    SysTick->CTRL = (1U << 2) | (1U << 0);
+    // COUNTFLAG 기다리기
+    while ((SysTick->CTRL & (1U << 16)) == 0)
+    {
+    }
+    // 정지
+    SysTick->CTRL = 0;
+}
+
+static void delay_ms(uint32_t ms)
+{
+    while (ms--)
+    {
+        delay_1ms_systick();
+    }
+}
