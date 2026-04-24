@@ -1,0 +1,41 @@
+#include "stm32f446xx.h"
+#include <stdint.h>
+
+static void delay_ms(uint32_t ms);
+
+int main(void)
+{
+    // GPIOA 클럭 enable
+    RCC->AHB1ENR |= (1U << 0);   // GPIOAEN = 1
+
+    // PA5 output mode
+    GPIOA->MODER &= ~(3U << (5 * 2));  // PA5 MODER clear
+    GPIOA->MODER |=  (1U << (5 * 2));  // 01 = output
+
+    while (1)
+    {
+        GPIOA->BSRR = (1U << 5);         // PA5 HIGH, LED ON
+        delay_ms(500);
+
+        GPIOA->BSRR = (1U << (5 + 16));  // PA5 LOW, LED OFF
+        delay_ms(500);
+    }
+}
+
+static void delay_ms(uint32_t ms)
+{
+    while (ms--)
+    {
+        SysTick->CTRL = 0;
+        SysTick->LOAD = 16000U - 1U;   // HSI 16MHz 기준 1ms
+        SysTick->VAL  = 0;
+
+        SysTick->CTRL = (1U << 2) | (1U << 0);  // HCLK 사용 + ENABLE
+
+        while ((SysTick->CTRL & (1U << 16)) == 0)
+        {
+        }
+
+        SysTick->CTRL = 0;
+    }
+}
